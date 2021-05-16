@@ -7,15 +7,15 @@
 
 #include <iostream>
 #include "filemanip.h"
-#define AnsCheck
-static constexpr int litnum = 10;
-static constexpr int bignum = 6;
+//#define AnsCheck
+static constexpr int litnum = 2;
+static constexpr int bignum = 2;
 //bug 注：3/5它测query_transfer了
 //bug 注：6/10它测query_transfer了
-#define FileI { std::freopen((std::string("../data/basic_") + std::to_string(bignum) + '/' + std::to_string(litnum) + ".in").c_str(), "r", stdin);};
+//#define FileI { std::freopen((std::string("../data/basic_") + std::to_string(bignum) + '/' + std::to_string(litnum) + ".in").c_str(), "r", stdin);};
         std::fstream fans((std::string("../data/basic_") + std::to_string(bignum) + '/' + std::to_string(litnum) + ".out").c_str());
-#define TimeTracing
-#define MagnitudeTracing
+//#define TimeTracing
+//#define MagnitudeTracing
 /*
  * AnsCheck为文件对标机开关，需要把data文件夹放入目录使用
  * FileI为读入文件路径，如果想控制台输入只需要把这行注掉
@@ -134,14 +134,14 @@ class ErrorOccur {
 };
 
 inline void Error(const char *x) {
-    main_log << RED << "error: " << x << END << std::endl << CUT;
+//    main_log << RED << "error: " << x << END << std::endl << CUT;
     throw ErrorOccur();
 }
 
 bool writeByMyself = false;
 template<class T>
 void Return(T thing){
-    std::cout << thing << std::endl;
+    std::cout << thing << "\n";
 //    log();
     if(writeByMyself) return;
 #ifdef AnsCheck
@@ -160,7 +160,7 @@ void Return(T thing){
         writeByMyself = true;
     }
 #endif
-    main_log << GREEN  << "success " << thing << END << std::endl << CUT;
+//    main_log << GREEN  << "success " << thing << END << std::endl << CUT;
 
 }
 //怎么查撞哈希啊

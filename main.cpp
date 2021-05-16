@@ -612,41 +612,40 @@ void train::query_transfer(StationName fromStation, StationName toStation, Month
     //caution 注意s与t的列车的双交点！！！找mid不要停，可能会有同样s与t列车的更优的mid！！！
     for (auto midStation : midStations) {
         for (auto startTrainPtr : midStation.second.first) {
-            std::cout << __FUNCTION__ << '\t' << __LINE__ << std::endl;
+            
             orderCalculator.trainPtr = startTrainPtr;
             try {
-                std::cout << __FUNCTION__ << '\t' << __LINE__ << std::endl;
+                
                 orderCalculator.run(QUERY_TRANSFER_FROM, "", monthDate, fromStation, midStation.first); } catch (
                     ErrorOccur) { continue; }
-            std::cout << __FUNCTION__ << '\t' << __LINE__ << std::endl;
+            
             tmpAns.second.first = orderCalculator.order;
             orderCalculator.arriveTomid = orderCalculator.order.arrivingTime;
             for (auto endTrainPtr : midStation.second.second) {
-                std::cout << __FUNCTION__ << '\t' << __LINE__ << std::endl;
+                
                 if (startTrainPtr == endTrainPtr) continue;
                 orderCalculator.trainPtr = endTrainPtr;
                 try {
-                    std::cout << __FUNCTION__ << '\t' << __LINE__ << std::endl;
+                    
                     orderCalculator.run(QUERY_TRANSFER_TO, "", orderCalculator.arriveTomid.monthDate, midStation.first,
                                         toStation);
                 } catch (ErrorOccur) { continue; }
-                std::cout << __FUNCTION__ << '\t' << __LINE__ << std::endl;
+                
                 //                     (sortFromLowerToHigherBy == "time") ? int(orderCalculator.order.leavingTime) : orderCalculator.order.price
                 tmpAns.second.second = orderCalculator.order;
                 tmpAns.first.first = (sortFromLowerToHigherBy == "time") ? (int(tmpAns.second.second.arrivingTime) -
                                                                             int(tmpAns.second.first.leavingTime)) : (
                                              tmpAns.second.first.price + tmpAns.second.second.price);
                 tmpAns.first.second = int(tmpAns.second.first.arrivingTime) - int(tmpAns.second.first.leavingTime);
-                std::cout << "best" + std::string(bestAns.second.first) + "\nbest" + std::string(bestAns.second.second) + "\ntmp" + std::string(tmpAns.second.first) + "\ntmp" + std::string(tmpAns.second.second) + "\n" << std::endl;
                 if (tmpAns.first < bestAns.first)
                 {
                     bestAns = tmpAns;
                 }
             }
-            std::cout << __FUNCTION__ << '\t' << __LINE__ << std::endl;
+            
         }
     }
-    std::cout << __FUNCTION__ << '\t' << __LINE__ << std::endl;
+    
     if (bestAns.first.first == 0x3f3f3f3f) {
         Return(0);
         return;

@@ -513,7 +513,7 @@ struct OrderCalculator {
                 train.ticketNums[index][i] -= ticketNum;
             }
             existTrains.setItem(trainPtr, train);
-            Return(order.price * ticketNum);
+            Return((long long)(order.price) * ticketNum);
             return;
         }
 
@@ -612,25 +612,19 @@ void train::query_transfer(StationName fromStation, StationName toStation, Month
     //caution 注意s与t的列车的双交点！！！找mid不要停，可能会有同样s与t列车的更优的mid！！！
     for (auto midStation : midStations) {
         for (auto startTrainPtr : midStation.second.first) {
-            
             orderCalculator.trainPtr = startTrainPtr;
             try {
-                
                 orderCalculator.run(QUERY_TRANSFER_FROM, "", monthDate, fromStation, midStation.first); } catch (
                     ErrorOccur) { continue; }
-            
             tmpAns.second.first = orderCalculator.order;
             orderCalculator.arriveTomid = orderCalculator.order.arrivingTime;
             for (auto endTrainPtr : midStation.second.second) {
-                
                 if (startTrainPtr == endTrainPtr) continue;
                 orderCalculator.trainPtr = endTrainPtr;
                 try {
-                    
                     orderCalculator.run(QUERY_TRANSFER_TO, "", orderCalculator.arriveTomid.monthDate, midStation.first,
                                         toStation);
                 } catch (ErrorOccur) { continue; }
-                
                 //                     (sortFromLowerToHigherBy == "time") ? int(orderCalculator.order.leavingTime) : orderCalculator.order.price
                 tmpAns.second.second = orderCalculator.order;
                 tmpAns.first.first = (sortFromLowerToHigherBy == "time") ? (int(tmpAns.second.second.arrivingTime) -
@@ -642,10 +636,8 @@ void train::query_transfer(StationName fromStation, StationName toStation, Month
                     bestAns = tmpAns;
                 }
             }
-            
         }
     }
-    
     if (bestAns.first.first == 0x3f3f3f3f) {
         Return(0);
         return;

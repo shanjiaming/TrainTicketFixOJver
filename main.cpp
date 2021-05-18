@@ -498,6 +498,7 @@ struct OrderCalculator {
         }
         if (functionName == BUY_TICKET) {
             AssureLogin(username);
+            if(train.seatNum < ticketNum) Error("REALLY NO ENOUGH TICKET: MORE THAN SEATNUM");
             if (minTicket < ticketNum) {//no enough ticket
                 if (wannaWaitToBuyIfNoEnoughTicket == "false") Error("NO ENOUGH TICKET");
                 //better Queue 可以不必是Queue的样子，而是trainID为key的一个map，这样在refund_ticket的时候可以大幅减少查队列所需的复杂度，尽管是内存行为。

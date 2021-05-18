@@ -16,13 +16,11 @@ namespace sjtu {
     class vector {
     private:
         T** a;
-//T**a;//FIXME MemLeak
         size_t space, num;
         static const size_t InitSize = 5;
 
         void doubleSpace() {
             T** tmp;
-//T**tmp;//FIXME MemLeak
             space *= 2;
             tmp = new T*[space];
             for (int i = 0; i < num; ++i)

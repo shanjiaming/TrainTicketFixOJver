@@ -134,7 +134,7 @@ class ErrorOccur {
 };
 
 inline void Error(const char *x) {
-//    main_log << RED << "error: " << x << END << std::endl << CUT;
+    main_log << RED << "error: " << x << END << std::endl << CUT;
     throw ErrorOccur();
 }
 
@@ -160,7 +160,7 @@ void Return(T thing){
         writeByMyself = true;
     }
 #endif
-//    main_log << GREEN  << "success " << thing << END << std::endl << CUT;
+    main_log << GREEN  << "success " << thing << END << std::endl << CUT;
 
 }
 //怎么查撞哈希啊

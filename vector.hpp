@@ -28,7 +28,26 @@ namespace sjtu {
             delete[] a;
             a = tmp;
         }
+        void sort(int l, int r) {
+            if (l >= r) return;
+            int left = l, right = r;
+            T *pivot = a[r];
+            while (l < r) {
+                while (l < r && *a[l] <= *pivot)++l;
+                if (l < r) a[r--] = a[l];
+                while (l < r && *a[r] >= *pivot)--r;
+                if (l < r)a[l++] = a[r];
+            }
+            a[r] = pivot;
+            sort(left, r - 1);
+            sort(r + 1, right);
+        }
     public:
+        void sort(){
+            sort(0,num-1);
+        }
+
+
         /**
          * TODO
          * a type for actions of the elements of a vector, and you should write

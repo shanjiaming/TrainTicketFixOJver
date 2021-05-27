@@ -1,0 +1,66 @@
+#ifndef SJTU_UTILITY_HPP
+#define SJTU_UTILITY_HPP
+
+namespace sjtu {
+
+    template<class T1, class T2>
+    class pair {
+    public:
+        T1 first;
+        T2 second;
+        constexpr pair() : first(), second() {}
+        pair(const pair &other) = default;
+//        pair(pair &&other) = default;
+        pair(const T1 &x, const T2 &y) : first(x), second(y) {}
+        template<class U1, class U2>
+        pair(U1 &&x, U2 &&y) : first(x), second(y) {}
+        template<class U1, class U2>
+        pair(const pair<U1, U2> &other) : first(other.first), second(other.second) {}
+        template<class U1, class U2>
+        pair(pair<U1, U2> &&other) : first(other.first), second(other.second) {}
+
+        bool operator==(const pair &rhs) const {
+            return first == rhs.first &&
+                   second == rhs.second;
+        }
+
+        bool operator!=(const pair &rhs) const {
+            return !(rhs == *this);
+        }
+
+        bool operator<(const pair &rhs) const;
+
+        bool operator>(const pair &rhs) const;
+
+        bool operator<=(const pair &rhs) const;
+
+        bool operator>=(const pair &rhs) const;
+    };
+
+    template<class T1, class T2>
+    bool pair<T1, T2>::operator<(const pair &rhs) const {
+        if (first < rhs.first)
+            return true;
+        if (rhs.first < first)
+            return false;
+        return second < rhs.second;
+    }
+
+    template<class T1, class T2>
+    bool pair<T1, T2>::operator>(const pair &rhs) const {
+        return rhs < *this;
+    }
+
+    template<class T1, class T2>
+    bool pair<T1, T2>::operator<=(const pair &rhs) const {
+        return !(rhs < *this);
+    }
+
+    template<class T1, class T2>
+    bool pair<T1, T2>::operator>=(const pair &rhs) const {
+        return !(*this < rhs);
+    }
+
+}
+
+#endif

@@ -5,53 +5,11 @@
 #ifndef MAIN_CPP_MAPS_H
 #define MAIN_CPP_MAPS_H
 
-//stub
-#include <unordered_map>
 #include "vector.hpp"
 #include "filemanip.h"
 #include "BPlusTree.hpp"
-#include <set>
 #include <functional>
-#include <ostream>
-
-template <class U, class V>
-struct mypair{
-    U first;
-    V second;
-    mypair(){}
-    mypair(const U& u, const V& v):first(u), second (v){}
-
-    bool operator==(const mypair &rhs) const {
-        return first == rhs.first &&
-               second == rhs.second;
-    }
-
-    bool operator!=(const mypair &rhs) const {
-        return !(rhs == *this);
-    }
-
-    bool operator<(const mypair &rhs) const {
-        if (first < rhs.first)
-            return true;
-        if (rhs.first < first)
-            return false;
-        return second < rhs.second;
-    }
-
-    bool operator>(const mypair &rhs) const {
-        return rhs < *this;
-    }
-
-    bool operator<=(const mypair &rhs) const {
-        return !(rhs < *this);
-    }
-
-    bool operator>=(const mypair &rhs) const {
-        return !(*this < rhs);
-    }
-};
-
-mypair<int,int> p = {1,2};
+#include "map.hpp"
 
 
 // Hash 将 Key 映射为一个 unsigned long long
@@ -77,7 +35,7 @@ public:
 
     ~OuterUniqueUnorderMap() { fio.close(); }
 
-    bool insert(const mypair<Key, Value> &pair) {
+    bool insert(const sjtu::pair<Key, Value> &pair) {
         fio.seekg(0, std::ios::end);
         int pos = fio.tellp();
 
@@ -92,7 +50,7 @@ public:
         return bpt.erase(Hash()(key));
     }
 
-    mypair<int, bool> find(const Key &key) {
+    sjtu::pair<int, bool> find(const Key &key) {
         int f = bpt.query(Hash()(key));
         return {f, ~f ? true : false};
     }
@@ -130,7 +88,6 @@ public:
 };
 
 
-//stub 唐嘉铭 todo
 template<class Key, class Value, class Hash, int MAXN = 300000>
 //Hash是一个模板类名，它实例化后的一个对象例为auto h = Hash<string>(), 这个对象重载了括号，比如可以h(1),然后返回一个size_t
 class InnerUniqueUnorderMap {
@@ -164,7 +121,7 @@ public:
         size++;
     }
 
-    bool insert(const mypair<Key, Value> &pair) {
+    bool insert(const sjtu::pair<Key, Value> &pair) {
         ull hs = Hash()(pair.first);
         int hsmod = hs % MOD;
         for (int i = last[hsmod]; i; i = e[i].pre)
@@ -175,7 +132,7 @@ public:
         return 1;
     }
 
-    mypair<Value, bool> erase(const Key &key) {
+    sjtu::pair<Value, bool> erase(const Key &key) {
         ull hs = Hash()(key);
         int hsmod = hs % MOD;
         for (int i = last[hsmod], *j = &last[hsmod]; i; j = &e[i].pre, i = e[i].pre)
@@ -361,13 +318,12 @@ struct InnerList {
     }
 };
 
-//bug 有！ bug！
 template<class Key, class Value, class Hash>
 class InnerOuterMultiUnorderMap {//复杂度分析：每次到threshold刷的时候就要访问一次bpt
 public:
     FileName fileName;
     std::fstream file;
-    static constexpr int THRESHOLD = 100;//memo 1 是debug用的数据，到时候再改回来
+    static constexpr int THRESHOLD = 40;//memo 1 是debug用的数据，到时候再改回来
 
     InnerOuterMultiUnorderMap(FileName fileName) : fileName(fileName),
                                                    outmapper((std::string("inout_") + fileName).c_str()) {
@@ -388,8 +344,8 @@ public:
     }
 
 
-    void insert(const mypair<Key, Value> &pair) {
-        Data *dataptr = safeGetDataFromInnerMapper(pair.first);//还没有运用nownum的好处，也没有维护它。
+    void insert(const sjtu::pair<Key, Value> &pair) {
+        Data *dataptr = safeGetDataFromInnerMapper(pair.first);
         dataptr->listptr->push_front(pair.second);
         if (dataptr->listptr->size() > THRESHOLD)
             putToFileWithoutFear(dataptr);
@@ -425,16 +381,13 @@ public:
     };//caution login 的时候注意get一下
 
     InnerList<Value> *readListFromFile(std::fstream &file, Address address, int &nownum) {
-        if (nownum == 0) {//todo zerolize nownum
+        if (nownum == 0) {
             return new InnerList<Value>();
         }
         file.seekg(address);
-//better 之前优化出了bug, 又撤回了，下次再做
         const int bitnum = sizeof(Value) * nownum;
         char *fixzero = new char[bitnum]{0};
         file.read(fixzero, bitnum);
-
-        //读出后要set0吗？
         InnerList<Value> *listptr = new InnerList<Value>();
         for (int i = nownum - 1; ~i; --i) {
             Value t;
@@ -451,7 +404,7 @@ public:
 
 
     InnerList<Value> *find(Key key) {//caution find 出来的链表会即使在内存中栈空间清除吗？ 不然写了这个也白白地没有用。
-        //better 可以取消门槛机制，每次find直接刷掉
+        //better 可以取消门槛机制，每次find直接刷掉 但是发现return出来了不知道什么时候才用完，故不行。
         Data * dataptr = safeGetDataFromInnerMapper(key);
         InnerList<Value> *listptr = readListFromFile(file, dataptr->address, dataptr->nownum);
         mergeList(dataptr->listptr, listptr);

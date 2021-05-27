@@ -93,7 +93,7 @@ void function_chooser() {//FIXME 时间性能异常，首先要把所有regex东西都提出来改成
 
     std::string s[10];
 
-    static const mypair<std::string, std::string> chooser[17] = {
+    static const sjtu::pair<std::string, std::string> chooser[17] = {
             {"add_user", "upnm cg "},
             {"login", "up "},
             {"logout", "u "},
@@ -135,22 +135,26 @@ void function_chooser() {//FIXME 时间性能异常，首先要把所有regex东西都提出来改成
         }
     }
     int ip = 0;
-    const int parasz = paraStr.size();
+    const size_t parasz = paraStr.size();
     for (; paraStr[ip] != ' '; ++ip) {
-        unsigned long loc = input.find(std::string(" -") + paraStr[ip] + " ");
+        size_t loc = input.find(std::string(" -") + paraStr[ip] + " ");
         if(loc == std::string::npos) Error("NOT FIND PARAMETER");
         std::stringstream(input.substr(loc + 4)) >> s[ip];
     }
     for (++ip; ip < parasz; ++ip) {
-        unsigned long loc = input.find(std::string(" -") + paraStr[ip] + " ");
+        size_t loc = input.find(std::string(" -") + paraStr[ip] + " ");
         if(loc == std::string::npos) continue;
         std::stringstream(input.substr(loc + 4)) >> s[ip - 1];
     }
-    static auto mystoi = [](std::string str){
-        return str.empty() ? -1 : stoi(str);
+    static auto mystoi = [](const std::string& str){
+        if (str.empty()) return -1;
+        int ans = 0;
+        for(size_t i = 0; i < str.size(); ++i)
+            ans = ans * 10 + (str[i] - '0');
+        return ans;
     };
 
-    static mypair<std::string, std::function<void()>> arr[17] = {
+    static sjtu::pair<std::string, std::function<void()>> arr[17] = {
             {"add_user", [&s]() { user::add_user(s[4], s[0], s[1], s[2], s[3], mystoi(s[5]));}},
             {"login", [&s]() { user::login(s[0], s[1]); }},
             {"logout", [&s]() { user::logout(s[0]); }},
@@ -329,7 +333,6 @@ void train::release_train(TrainID trainID) {
     train.is_released = 1;
     existTrains.setItem(trainPtr, train);
 
-//stub
     for (int i = 0; i < train.stationNum; ++i)
         addPassedTrainPtr(train.stations[i], trainPtr);
 
@@ -520,10 +523,10 @@ void train::query_ticket(StationName fromStation, StationName toStation, MonthDa
                          TwoChoice sortFromLowerToHigherBy) {
     ResetClock;
     if (sortFromLowerToHigherBy == "")sortFromLowerToHigherBy = "time";
-    auto trainPtrs = findCommonTrain(fromStation, toStation);//better station 直接手持Outer的Iterator，即地址，
-    //stub in order to use sort in <algorithm>, I use std::vector instead of sjtu::vector
-    std::vector<mypair<mypair<int, TrainID>, std::string>> vans;
-    for (TrainPtr trainPtr : trainPtrs) {
+    auto trainPtrs = findCommonTrain(fromStation, toStation);//better station 直接手持Outer的Iterator，即地址
+    sjtu::vector<sjtu::pair<sjtu::pair<int, TrainID>, std::string>> vans;
+    for (auto &sth : trainPtrs) {
+        TrainPtr trainPtr = sth.first;
         try {
             orderCalculator.trainPtr = trainPtr;
             orderCalculator.run(QUERY_TICKET, "", monthDate, fromStation, toStation);
@@ -535,13 +538,10 @@ void train::query_ticket(StationName fromStation, StationName toStation, MonthDa
             continue;
         }
     }
-    //stub 对vector由低到高排序
-#include <algorithm>
-
-    sort(vans.begin(), vans.end());
+    vans.sort();
+    ResetClock;
     Return(vans.size());
     for (auto i : vans) Return(i.second);
-//TODO
 }
 
 void train::query_transfer(StationName fromStation, StationName toStation, MonthDate monthDate,
@@ -551,10 +551,9 @@ void train::query_transfer(StationName fromStation, StationName toStation, Month
 
     auto midStations = findMidStation(fromStation, toStation);
 
-    mypair<mypair<int, PassedMinutes>, mypair<Order, Order>> bestAns;
-    mypair<mypair<int, PassedMinutes>, mypair<Order, Order>> tmpAns;
+    sjtu::pair<sjtu::pair<int, PassedMinutes>, sjtu::pair<Order, Order>> bestAns;
+    sjtu::pair<sjtu::pair<int, PassedMinutes>, sjtu::pair<Order, Order>> tmpAns;
     bestAns.first.first = 0x3f3f3f3f;
-    //caution 注意s与t的列车的双交点！！！找mid不要停，可能会有同样s与t列车的更优的mid！！！
     for (auto midStation : midStations) {
         for (auto startTrainPtr : midStation.second.first) {
             orderCalculator.trainPtr = startTrainPtr;
@@ -651,37 +650,14 @@ void sys::noReturnClean() {
     stmap.clear();
 }
 
-void fake_exit() {
-    existUsers.~OuterUniqueUnorderMap();
-    existTrains.~OuterUniqueUnorderMap();
-    loginUsers.~InnerUniqueUnorderMap();
-    waitQueue.~Queue();
-    userOrders.~InnerOuterMultiUnorderMap();
-    stmap.~InnerOuterMultiUnorderMap();
-    InnerOuterMultiUnorderMap<Username, Order, HashString> userOrders("user_orders.dat");
-    Queue<Order> waitQueue("wait_queue.dat");
-    InnerOuterMultiUnorderMap<StationName, TrainID, HashString> stmap("stationName_trainID.dat");//这是假的。
-    InnerUniqueUnorderMap<Username, Privilege, HashString> loginUsers;
-    OuterUniqueUnorderMap<Username, User, HashString> existUsers("existUsers.dat");
-    OuterUniqueUnorderMap<TrainID, Train, HashString> existTrains("existTrains.dat");
-
-}
-
 void sys::clean() {
     sys::noReturnClean();
     Return(0);
 }
 
-void cache_putback() {
-    //maybe use loginUser.ordernumth to write existUsers.ordernumth
-}
-
 void sys::exit() {
     Return("bye");
-    log();//FIXME to debug
-//    noReturnClean();
-//    cache_putback();
-//    fake_exit();//FIXME to debug
+    log();
     std::exit(0);
 }
 

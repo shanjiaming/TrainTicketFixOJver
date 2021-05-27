@@ -9,7 +9,7 @@
 #include "filemanip.h"
 //#define AnsCheck
 static constexpr int litnum = 2;
-static constexpr int bignum = 2;
+static constexpr int bignum = 6;
 //bug 注：3/5它测query_transfer了
 //bug 注：6/10它测query_transfer了
 //#define FileI { std::freopen((std::string("../data/basic_") + std::to_string(bignum) + '/' + std::to_string(litnum) + ".in").c_str(), "r", stdin);};
@@ -128,13 +128,15 @@ inline void cleanlog() {
 }
 
 //-----------------------------------------------OUTPUT
-inline void Info(std::string x) { main_log << BLUE << x << END << std::endl; }
+inline void Info(std::string x) {
+//    main_log << BLUE << x << END << std::endl;
+}
 
 class ErrorOccur {
 };
 
 inline void Error(const char *x) {
-    main_log << RED << "error: " << x << END << std::endl << CUT;
+//    main_log << RED << "error: " << x << END << std::endl << CUT;
     throw ErrorOccur();
 }
 
@@ -143,8 +145,8 @@ template<class T>
 void Return(T thing){
     std::cout << thing << "\n";
 //    log();
-    if(writeByMyself) return;
 #ifdef AnsCheck
+    if(writeByMyself) return;
     std::string ansstr, mystr;
     std::getline(fans, ansstr);
 //    std::cout << ansstr << std::endl;
@@ -159,8 +161,8 @@ void Return(T thing){
         freopen("../myin.txt", "r", stdin);
         writeByMyself = true;
     }
-#endif
     main_log << GREEN  << "success " << thing << END << std::endl << CUT;
+#endif
 
 }
 //怎么查撞哈希啊

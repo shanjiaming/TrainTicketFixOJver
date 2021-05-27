@@ -91,124 +91,86 @@ void initialize() {
 void function_chooser() {//FIXME 时间性能异常，首先要把所有regex东西都提出来改成static使她快20倍，而即使这样也特别的慢。
     ResetClock;
 
-    std::smatch parameter;
-    static auto pluralStrMaker = [](const std::string &str) -> const std::string {
-        const std::string strNoSpace = str.substr(1);
-        return " (" + strNoSpace + "(?:\\|" + strNoSpace + ")*)";
-    };
-    static const std::string
-            chinese = "[^\\s\\|]{3}",
-//            chinese = "\\w/*[\u4e00-\u9fa5]*/",
-    username = " ([a-zA-z]\\w{0,19})",
-            passwd = " (\\S{1,30})",
-            name = " (" + chinese + "{2,5})",
-            mailAddr = " ([0-9a-zA-Z\\@\\.]{1,30})",
-            privilege = " (10|[0-9])";
-    static const std::regex
-            _c(" -c" + username),
-            _u(" -u" + username),
-            _pu(" -p" + passwd),
-            _nu(" -n" + name),
-            _mu(" -m" + mailAddr),
-            _g(" -g" + privilege),
-            rule_add_user("^add_user"),
-            rule_login("^login"),
-            rule_logout("^logout"),
-            rule_query_profile("^query_profile"),
-            rule_modify_profile("^modify_profile");
-    static const std::string
-            trainID = username,
-            stationNum = " (100|[1-9][0-9]|[2-9])",
-            station = " (" + chinese + "{1,10})",
-            seatNum = " (100000|[1-9]\\d{0,4}|0)",
-            price = seatNum,
-            startTime = " ((?:[0-1][0-9]|2[0-3]|[0-9]):[0-5][0-9])",
-            travelTime = " (10000|[1-9]\\d{0,3}|0)",
-            stopoverTime = travelTime,
-            saleDate = " (06-(?:0[1-9]|[1-2][0-9]|30)|0[7-8]-(?:0[1-9]|[1-2][0-9]|3[0-1]))",
-            type = " ([A-Z])";
-    static const std::regex
-            _i(" -i" + trainID),
-            _n(" -n" + stationNum), _num(" -n (\\d+)"),
-            _startPlace(" -s" + station),
-            _fromPlace(" -f" + station), _toPlace(" -t" + station), _ss(" -s" + pluralStrMaker(station)),
-            _m(" -m" + seatNum),
-            _p(" -p" + price), _pt(" -p (time|cost)"), _qt(" -q (false|true)"),
-            _ps(" -p" + pluralStrMaker(price)),
-            _x(" -x" + startTime), _s(" -s" + startTime),
-            _t(" -t" + travelTime),
-            _ts(" -t" + pluralStrMaker(travelTime)),
-            _o(" -o" + stopoverTime), _os(" -o" + pluralStrMaker(stopoverTime)),
-            _d(" -d" + saleDate), _ds(" -d" + pluralStrMaker(saleDate)),
-            _y(" -y" + type),
-            rule_add_train("^add_train"),
-            rule_release_train("^release_train"),
-            rule_query_train("^query_train"),
-            rule_delete_train("^delete_train"),
-            rule_query_ticket("^query_ticket"),
-            rule_query_transfer("^query_transfer"),
-            rule_buy_ticket("^buy_ticket"),
-            rule_query_order("^query_order"),
-            rule_refund_ticket("^refund_ticket"),
-            rule_log("^log"),
-            rule_clean("^clean"),
-            rule_exit("^exit");
+    std::string s[10];
 
+    static const mypair<std::string, std::string> chooser[17] = {
+            {"add_user", "upnm cg "},
+            {"login", "up "},
+            {"logout", "u "},
+            {"query_profile", "cu "},
+            {"modify_profile", "cu pnmg"},
+            {"add_train", "inmspxtody "},
+            {"release_train", "i "},
+            {"query_train", "id "},
+            {"delete_train", "i "},
+            {"query_ticket", "std p"},
+            {"query_transfer", "std p"},
+            {"buy_ticket", "uidnft q"},
+            {"query_order", "u "},
+            {"refund_ticket", "u n"},
+            {"log", " "},
+            {"clean", " "},
+            {"exit", " "}};
+
+//getline 是耗时的！
+//better 输入和输出都是耗时的，注意一下。
     getline(std::cin, input);
-
-    input.erase(0, input.find_first_not_of(" "));
-    input.erase(input.find_last_not_of(" ") + 1);
+    input.erase(0, input.find_first_not_of(' '));
+    input.erase(input.find_last_not_of(' ') + 1);
 //    if (cin.eof()) exit(0);
     //maybe 不知道有没有eof自动关闭的机制，先认为没有，因为可能没有buy返回值，但又要动态放回。
-    if (input == "") return;
+    if (input.empty()) return;
 
-    Info(input);
+//    Info(input);
     //memo 日志较为耗时，关掉即可
 
 
-    //FIXME match这一步依然是耗时的大头
-    static auto match = [&parameter](const std::regex &str) -> bool {
+    std::string funcNameStr, paraStr;
+    std::stringstream(input) >> funcNameStr;
+    for (auto i = begin(chooser); ; ++i) {
+        if(i == end(chooser))Error("SYNTAX ERROR");
+        if (funcNameStr == i->first) {
+            paraStr = i->second;
+            break;
+        }
+    }
+    int ip = 0;
+    const int parasz = paraStr.size();
+    for (; paraStr[ip] != ' '; ++ip) {
+        unsigned long loc = input.find(std::string(" -") + paraStr[ip] + " ");
+        if(loc == std::string::npos) Error("NOT FIND PARAMETER");
+        std::stringstream(input.substr(loc + 4)) >> s[ip];
+    }
+    for (++ip; ip < parasz; ++ip) {
+        unsigned long loc = input.find(std::string(" -") + paraStr[ip] + " ");
+        if(loc == std::string::npos) continue;
+        std::stringstream(input.substr(loc + 4)) >> s[ip - 1];
+    }
+    static auto mystoi = [](std::string str){
+        return str.empty() ? -1 : stoi(str);
+    };
 
-        return std::regex_search(input, parameter, str);
-    };
-    static auto pm = [&parameter](const std::regex &str) -> std::string {
-//        ResetClock;
-        if (match(str))
-            return parameter.str(1);
-        return std::string();
-    };
-    static auto pmint = [&parameter](const std::regex &str) -> int {
-//        ResetClock;
-        if (match(str)) return stoi(parameter.str(1));
-        return -1;
-    };
-
-    static mypair<std::regex, std::function<void()>> arr[17] = {
-            {rule_add_user,       []() { user::add_user(pm(_c), pm(_u), pm(_pu), pm(_nu), pm(_mu), pmint(_g)); }},
-            {rule_login,          []() { user::login(pm(_u), pm(_pu)); }},
-            {rule_logout,         []() { user::logout(pm(_u)); }},
-            {rule_query_profile,  []() { user::query_profile(pm(_c), pm(_u)); }},
-            {rule_modify_profile, []() { user::modify_profile(pm(_c), pm(_u), pm(_pu), pm(_nu), pm(_mu), pmint(_g)); }},
-            {rule_add_train,      []() {
-                train::add_train(pm(_i), pmint(_n), pmint(_m), pm(_ss), pm(_ps), pm(_x), pm(_ts), pm(_os), pm(_ds),
-                                 pm(_y));
-            }},
-            {rule_release_train,  []() { train::release_train(pm(_i)); }},
-            {rule_query_train,    []() { train::query_train(pm(_i), pm(_d)); }},
-            {rule_delete_train,   []() { train::delete_train(pm(_i)); }},
-            {rule_query_ticket,   []() { train::query_ticket(pm(_startPlace), pm(_toPlace), pm(_d), pm(_pt)); }},
-            {rule_query_transfer, []() { train::query_transfer(pm(_startPlace), pm(_toPlace), pm(_d), pm(_pt)); }},
-            {rule_buy_ticket,     []() {
-                train::buy_ticket(pm(_u), pm(_i), pm(_d), pmint(_num), pm(_fromPlace), pm(_toPlace), pm(_qt));
-            }},
-            {rule_query_order,    []() { train::query_order(pm(_u)); }},
-            {rule_refund_ticket,  []() { train::refund_ticket(pm(_u), pmint(_num)); }},
-            {rule_log,            []() { log(); }},
-            {rule_clean,          []() { sys::clean(); }},
-            {rule_exit,           []() { sys::exit(); }}};
+    static mypair<std::string, std::function<void()>> arr[17] = {
+            {"add_user", [&s]() { user::add_user(s[4], s[0], s[1], s[2], s[3], mystoi(s[5]));}},
+            {"login", [&s]() { user::login(s[0], s[1]); }},
+            {"logout", [&s]() { user::logout(s[0]); }},
+            {"query_profile", [&s]() { user::query_profile(s[0], s[1]); }},
+            {"modify_profile", [&s]() { user::modify_profile(s[0], s[1], s[2], s[3], s[4], mystoi(s[5])); }},
+            {"add_train", [&s]() {train::add_train(s[0], mystoi(s[1]), mystoi(s[2]), s[3], s[4], s[5], s[6], s[7], s[8],s[9]);}},
+            {"release_train", [&s]() { train::release_train(s[0]); }},
+            {"query_train", [&s]() { train::query_train(s[0], s[1]); }},
+            {"delete_train", [&s]() { train::delete_train(s[0]); }},
+            {"query_ticket", [&s]() { train::query_ticket(s[0], s[1], s[2], s[3]); }},
+            {"query_transfer", [&s]() { train::query_transfer(s[0], s[1], s[2], s[3]); }},
+            {"buy_ticket", [&s]() {train::buy_ticket(s[0], s[1], s[2], mystoi(s[3]), s[4], s[5], s[6]);}},
+            {"query_order", [&s]() { train::query_order(s[0]); }},
+            {"refund_ticket", [&s]() { train::refund_ticket(s[0], mystoi(s[1])); }},
+            {"log", [&s]() { log(); }},
+            {"clean", [&s]() { sys::clean(); }},
+            {"exit", [&s]() { sys::exit(); }}};
 
     for (auto i = begin(arr); i != end(arr); ++i) {
-        if (match(i->first)) {
+        if (funcNameStr == i->first) {
             i->second();
             return;
         }
@@ -220,10 +182,8 @@ void function_chooser() {//FIXME 时间性能异常，首先要把所有regex东西都提出来改成
 void user::add_user(Username cur_username, Username username, Password password, Name name, MailAddr mailAddr,
                     Privilege privilege) {
     ResetClock;
-    cks(4, username, password, name, mailAddr);
     if (!existUsers.empty()) {//这里把它的语义改了下，不过并不影响，因为user是不会被删除的
-        ck(cur_username);
-        ckint(privilege);
+        if(cur_username == "" ||privilege == -1) Error("EMPTY PARAMETER");
         auto curPrivilegePtr = loginUsers.find(cur_username);
         if (!curPrivilegePtr)Error("CURRENT USER DOES NOT LOGIN");
         Privilege curPrivilege = *curPrivilegePtr;
@@ -231,7 +191,6 @@ void user::add_user(Username cur_username, Username username, Password password,
 //        if (password.size() < 6)Error("PASSWORD IS TOO SHORT");
     } else {
         privilege = 10;
-        ckint(privilege);
     }
     existUsers.insert({username, User(privilege, name, mailAddr, password)});
     Return(0);
@@ -241,7 +200,6 @@ void user::add_user(Username cur_username, Username username, Password password,
 void user::login(Username username, Password password) {
     ResetClock;
     InTrace("loginUser");
-    cks(2, username, password);
     auto CurUserPair = existUsers.find(username);
     if (!CurUserPair.second) Error("USER DOES NOT EXIST");
     const User &foundUser = existUsers.getItem(CurUserPair.first);
@@ -254,10 +212,8 @@ void user::login(Username username, Password password) {
 void user::logout(Username username) {
     ResetClock;
     OutTrace("loginUser");
-    ck(username);
     auto erasePair = loginUsers.erase(username);
     if (!erasePair.second)Error("CURRENT USER DOES NOT LOGIN");//erase in loginUsers
-
     Return(0);
 
 }
@@ -265,7 +221,6 @@ void user::logout(Username username) {
 
 void user::query_profile(Username cur_username, Username username) {
     ResetClock;
-    cks(2, cur_username, username);
     auto curUserPtr = loginUsers.find(cur_username);
     if (!curUserPtr) Error("CURRENT USER DOES NOT LOGIN");
     auto UserPair = existUsers.find(username);
@@ -281,7 +236,6 @@ void user::query_profile(Username cur_username, Username username) {
 void user::modify_profile(Username cur_username, Username username, Password password, Name name, MailAddr mailAddr,
                           Privilege privilege) {
     ResetClock;
-    cks(2, cur_username, username);
     auto curUserPtr = loginUsers.find(cur_username);
     if (!curUserPtr) Error("CURRENT USER DOES NOT LOGIN");
     Privilege curPrivilege = *curUserPtr;
@@ -335,10 +289,6 @@ void train::add_train(TrainID trainID, StationNum stationNum, SeatNum seatNum, S
                       Type type) {
     ResetClock;
 //    Tracer;
-    cks(8, trainID, stations, prices,
-        startTime, travelTimes, stopoverTimes, saleDates,
-        type);
-    ckints(2, stationNum, seatNum);
     sjtu::vector<StationName> station_s = words_spliter<StationName>(stations);
     sjtu::vector<PassedMinutes> travelTime_s = ints_spliter(travelTimes);
     sjtu::vector<PassedMinutes> stopoverTime_s = ints_spliter(stopoverTimes);
@@ -373,7 +323,6 @@ void AssureLogin(Username username) {
 void train::release_train(TrainID trainID) {
     ResetClock;
     Tracer;
-    ck(trainID);
     auto trainPtr = getTrainPtr(trainID);
     Train train = existTrains.getItem(trainPtr);
     if (train.is_released == 1)Error("TRAIN HAS ALREADY BE RELEASED");
@@ -390,7 +339,6 @@ void train::release_train(TrainID trainID) {
 void train::query_train(TrainID trainID, MonthDate startingMonthDate) {
     ResetClock;
     Tracer;
-    cks(2, trainID, startingMonthDate);
     Train train = getTrain(trainID);
     if (startingMonthDate < train.startSaleDate || train.endSaleDate < startingMonthDate)
         Error("QUERY DATE NOT IN SALE DATE");
@@ -411,7 +359,6 @@ void train::query_train(TrainID trainID, MonthDate startingMonthDate) {
 void train::delete_train(TrainID trainID) {
     ResetClock;
     Tracer;
-    ck(trainID);
     //hack 因为是n操作，选择冗余操作
     //getTrain可能抛出异常，先验保证了。
     if (getTrain(trainID).is_released)Error("DELETE TRAIN IS RELEASED");
@@ -422,8 +369,7 @@ void train::delete_train(TrainID trainID) {
 
 void train::query_order(Username username) {
     ResetClock;
-    ck(username);
-//    Tracer;
+    //    Tracer;
     AssureLogin(username);
     auto orderList = userOrders.find(username);
     Return(orderList->size());
@@ -573,7 +519,6 @@ struct OrderCalculator {
 void train::query_ticket(StationName fromStation, StationName toStation, MonthDate monthDate,
                          TwoChoice sortFromLowerToHigherBy) {
     ResetClock;
-    cks(3, fromStation, toStation, monthDate);
     if (sortFromLowerToHigherBy == "")sortFromLowerToHigherBy = "time";
     auto trainPtrs = findCommonTrain(fromStation, toStation);//better station 直接手持Outer的Iterator，即地址，
     //stub in order to use sort in <algorithm>, I use std::vector instead of sjtu::vector
@@ -602,7 +547,6 @@ void train::query_ticket(StationName fromStation, StationName toStation, MonthDa
 void train::query_transfer(StationName fromStation, StationName toStation, MonthDate monthDate,
                            TwoChoice sortFromLowerToHigherBy) {
     ResetClock;
-    cks(3, fromStation, toStation, monthDate);
     if (sortFromLowerToHigherBy == "")sortFromLowerToHigherBy = "time";
 
     auto midStations = findMidStation(fromStation, toStation);
@@ -654,8 +598,6 @@ void train::buy_ticket(Username username, TrainID trainID, MonthDate monthDate, 
                        StationName toStation, TwoChoice wannaWaitToBuyIfNoEnoughTicket) {
     ResetClock;
     Tracer;
-    cks(5, username, trainID, monthDate, fromStation, toStation);
-    ckint(ticketNum);
     if (wannaWaitToBuyIfNoEnoughTicket == "") wannaWaitToBuyIfNoEnoughTicket = "false";
 
     orderCalculator.ticketNum = ticketNum;
@@ -675,7 +617,6 @@ void train::buy_ticket(Username username, TrainID trainID, MonthDate monthDate, 
 void train::refund_ticket(Username username, OrderNumth orderNumth) {
     ResetClock;
 //    Tracer;
-    ck(username);
     if (orderNumth == -1) orderNumth = 1;
     AssureLogin(username);
 
@@ -737,7 +678,7 @@ void cache_putback() {
 
 void sys::exit() {
     Return("bye");
-//    log();//FIXME to debug
+    log();//FIXME to debug
 //    noReturnClean();
 //    cache_putback();
 //    fake_exit();//FIXME to debug

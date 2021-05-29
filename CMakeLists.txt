@@ -3,5 +3,5 @@ project(code)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(code main.cpp vector.hpp exceptions.hpp BPlusTree.hpp)
+add_executable(code main.cpp)
 

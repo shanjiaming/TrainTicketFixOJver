@@ -8,7 +8,7 @@
 
 class BPlusTree
 {
-    static const int max_size = 40, block_size = max_size / 2;
+    static const int max_size = 60, block_size = max_size / 2;
     using ull = unsigned long long;
 
 private:

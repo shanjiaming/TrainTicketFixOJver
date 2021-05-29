@@ -6,14 +6,22 @@
 #define MAIN_CPP_MAPS_H
 
 #include "vector.hpp"
-#include "filemanip.h"
 #include "BPlusTree.hpp"
 #include <functional>
 #include "map.hpp"
 
 
-// Hash 将 Key 映射为一个 unsigned long long
-template<class Key, class Value, class Hash>
+
+struct HashString {
+    unsigned long long operator()(const std::string &str) {
+        int ans = 0;
+        for (int i = 0; str[i] != '\0'; ++i) ans = ans * 19260817 + str[i];
+        return ans;
+    }
+};
+
+
+template<class Key, class Value, class Hash = HashString>
 class OuterUniqueUnorderMap {
 private:
     char file[50];
@@ -29,7 +37,6 @@ public:
             fout.close();
         }
         fin.close();
-
         fio.open(_datafile, std::ios::in | std::ios::out | std::ios::binary);
     };
 
@@ -87,8 +94,8 @@ public:
     }
 };
 
-
-template<class Key, class Value, class Hash, int MAXN = 300000>
+//这个参数对内存有影响。
+template<class Key, class Value, class Hash = HashString, int MAXN = 25000>
 //Hash是一个模板类名，它实例化后的一个对象例为auto h = Hash<string>(), 这个对象重载了括号，比如可以h(1),然后返回一个size_t
 class InnerUniqueUnorderMap {
 private:
@@ -205,7 +212,7 @@ struct InnerList {
         }
     }
 
-    void writeToFile(std::fstream &file, Address address, int timesOfSpace = 1) {
+    void writeToFile(std::fstream &file, int address, int timesOfSpace = 1) {
         const int bitnum = sizeof(T) * size() * timesOfSpace;
         if (!bitnum) return;
         file.seekg(address);
@@ -318,17 +325,21 @@ struct InnerList {
     }
 };
 
-template<class Key, class Value, class Hash>
+template<class Key, class Value,class Hash = HashString>
 class InnerOuterMultiUnorderMap {//复杂度分析：每次到threshold刷的时候就要访问一次bpt
 public:
-    FileName fileName;
+    std::string fileName;
     std::fstream file;
-    static constexpr int THRESHOLD = 40;//memo 1 是debug用的数据，到时候再改回来
+    static constexpr int THRESHOLD = 5;//memo 1 是debug用的数据，到时候再改回来
 
-    InnerOuterMultiUnorderMap(FileName fileName) : fileName(fileName),
+    InnerOuterMultiUnorderMap(std::string fileName) : fileName(fileName),
                                                    outmapper((std::string("inout_") + fileName).c_str()) {
-        fcreate(fileName);
         file.open(fileName, std::ios::in | std::ios::out | std::ios::binary);
+        if(!file){
+            std::ofstream fout(fileName, std::ios::out | std::ios::binary);
+            fout.close();
+            file.open(fileName, std::ios::in | std::ios::out | std::ios::binary);
+        }
     }
 
     ~InnerOuterMultiUnorderMap() {
@@ -363,7 +374,7 @@ public:
     }
 
 
-    void setAddressAndMaxFromOuterMapNumWhenFirstMeetKey(Key key) {
+    void setintAndMaxFromOuterMapNumWhenFirstMeetKey(Key key) {
         auto fd = outmapper.find(key);
         assert(fd.second);
         CoreData cd = outmapper.getItem(fd.first);
@@ -380,7 +391,7 @@ public:
         mapper.insert({key, Data(listptr, cd.address, cd.maxnum, cd.nownum)});
     };//caution login 的时候注意get一下
 
-    InnerList<Value> *readListFromFile(std::fstream &file, Address address, int &nownum) {
+    InnerList<Value> *readListFromFile(std::fstream &file, int address, int &nownum) {
         if (nownum == 0) {
             return new InnerList<Value>();
         }
@@ -426,13 +437,13 @@ public:
 //better 空间太大刷入外存 接口不变 这跟Queue的原理应当类似
 private:
     struct CoreData {
-        Address address = -2;
+        int address = -2;
         int maxnum = THRESHOLD;
         int nownum = 0;//指文件中的现有数据量
 
         CoreData() {};
 
-        CoreData(Address address, int maxnum, int nownum) : address(address), maxnum(maxnum), nownum(nownum) {}
+        CoreData(int address, int maxnum, int nownum) : address(address), maxnum(maxnum), nownum(nownum) {}
     };
 
     struct Data : CoreData {
@@ -440,7 +451,7 @@ private:
 
         Data() {}
 
-        Data(InnerList<Value> *listptr, Address address, int maxnum, int nownum) : listptr(listptr),
+        Data(InnerList<Value> *listptr, int address, int maxnum, int nownum) : listptr(listptr),
                                                                                    CoreData(address, maxnum, nownum) {}
     };
 
@@ -458,7 +469,7 @@ private:
         if (!iterpair.second) {
             outmapper.insert({key, CoreData()});
         }
-        setAddressAndMaxFromOuterMapNumWhenFirstMeetKey(key);
+        setintAndMaxFromOuterMapNumWhenFirstMeetKey(key);
         dataptr = mapper.find(key);
         return dataptr;
     }
@@ -467,7 +478,7 @@ private:
         InnerList<Value> *&valueList = dataptr->listptr;
         mergeList(valueList, readListFromFile(file, dataptr->address, dataptr->nownum));
         dataptr->nownum = valueList->size();
-        if (dataptr->maxnum > valueList->size()) {//刷数据也在find里刷了。之后注意一下。
+        if (dataptr->maxnum >= valueList->size()) {//刷数据也在find里刷了。之后注意一下。
             valueList->writeToFile(file, dataptr->address);
         } else {
             file.seekg(0, std::ios::end);
@@ -486,19 +497,22 @@ private:
 //singleton pattern
 
 
+
 template<class T>
 struct Queue : InnerList<T> {
-    FileName fileName;
+    std::string fileName;
     std::fstream file;
 
     using Node = typename InnerList<T>::Node;
     using Iterator = typename InnerList<T>::Iterator;
 
-    Queue(FileName fileName) : fileName(fileName) {//better 构建队列需不需要100w次文件读写？不过这显然不是瓶颈，但是可玩。
-        fcreate(fileName);
-
-        file.open(fileName, std::ios::in | std::ios::binary);
-        assert(file);
+    Queue(std::string fileName) : fileName(fileName) {//better 构建队列需不需要100w次文件读写？不过这显然不是瓶颈，但是可玩。
+        file.open(fileName, std::ios::in | std::ios::out | std::ios::binary);
+        if(!file){
+            std::ofstream fout(fileName, std::ios::out | std::ios::binary);
+            fout.close();
+            file.open(fileName, std::ios::in | std::ios::out | std::ios::binary);
+        }
         file.seekg(0, std::ios::end);
         file.tellg();
         const int bitnum = file.tellg();
@@ -529,13 +543,6 @@ struct Queue : InnerList<T> {
 };
 
 
-struct HashString {
-    unsigned long long operator()(const std::string &str) {
-        int ans = 0;
-        for (int i = 0; str[i] != '\0'; ++i) ans = ans * 19260817 + str[i];
-        return ans;
-    }
-};
 
 //memo 关于写法：queue整万划分，queue基本在内存中进行，直到内存达万划入一个整万块。在refund时，一个个把整万块拿出来在栈空间检查，然后如果某个整万块退成了，把那个块在内存里改掉后在外存里全部覆写一遍。
 
